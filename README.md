@@ -1,20 +1,20 @@
-# Nuxt Error Overlay Clipboard Bug Reproduction
+# Nuxt Error Overlay Clipboard Fix
 
-The copy button in Nuxt's error overlay fails because `navigator.clipboard` is undefined inside the `data:` URL iframe (opaque origin = not a secure context).
+Fix for the copy button in Nuxt's error overlay failing because `navigator.clipboard` is undefined inside the `data:` URL iframe.
 
-## Reproduce
+## Solution
+
+Uses postMessage bridge to delegate clipboard operations to parent window (which has secure context).
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-Visit http://localhost:3000 → error overlay appears → click copy button → check console for error.
+Visit http://localhost:3000 → error overlay appears → click copy button → works!
 
-## Root Cause
+## Patch
 
-Nuxt's error overlay renders youch's error page inside a `data:` URL iframe. The `data:` URL has an opaque origin which is not considered a secure context, so `navigator.clipboard` is undefined.
-
-## Fix
-
-See `fix/nuxt-patch` branch for a pnpm patch that fixes this via postMessage bridge.
+See `patches/@nuxt__nitro-server.patch` - adds ~15 lines to:
+1. Override `copyErrorMessage` in iframe to send postMessage
+2. Register clipboard handler in parent before host check

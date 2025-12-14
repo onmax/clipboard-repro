@@ -1,0 +1,35 @@
+diff --git a/dist/runtime/utils/dev.js b/dist/runtime/utils/dev.js
+index 3ab66b569a9438d69857f6c1abb9616d815898cd..fc49aee0fe796a545c3c5171c48a854cf5225bfa 100644
+--- a/dist/runtime/utils/dev.js
++++ b/dist/runtime/utils/dev.js
+@@ -74,6 +74,15 @@ const iframeStorageBridge = (nonce) => (
+     type: 'storage-sync-request',
+     nonce: NONCE
+   }, '*');
++
++  // Override copyErrorMessage to use postMessage (clipboard API unavailable in data: URL iframe)
++  document.addEventListener('DOMContentLoaded', function() {
++    window.copyErrorMessage = function(button) {
++      window.parent.postMessage({ type: 'clipboard-copy', text: button.dataset.errorText, nonce: NONCE }, '*');
++      button.classList.add('copied');
++      setTimeout(function() { button.classList.remove('copied'); }, 2000);
++    };
++  });
+ })();
+ `
+ );
+@@ -81,6 +90,14 @@ const parentStorageBridge = (nonce) => (
+   /* js */
+   `
+ (function() {
++  const NONCE = ${JSON.stringify(nonce)}
++  // Clipboard handler - register immediately (doesn't need iframe ref)
++  window.addEventListener('message', function(e) {
++    if (e.data && e.data.type === 'clipboard-copy' && e.data.nonce === NONCE) {
++      navigator.clipboard.writeText(e.data.text).catch(function() {});
++    }
++  });
++
+   const host = document.querySelector('nuxt-error-overlay');
+   if (!host) return;
+   
